@@ -1,6 +1,6 @@
 import { User } from "../entities/User";
 import { MyContext } from "src/types";
-import { Arg, Ctx, Field, InputType, Mutation, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Resolver } from "type-graphql";
 import argon2 from "argon2";
 
 // input types for args
@@ -11,6 +11,28 @@ class RegisterInput {
   username: string
   @Field()
   password: string
+}
+
+@ObjectType()
+class FieldError {
+  // this indicates which field the error occurred with (eg username, password)
+  @Field()
+  field: string;
+  // explanation of error
+  @Field()
+  message: string;
+}
+
+// question marks means the fields are optional
+@ObjectType()
+class UserResponse {
+  @Field(() => [FieldError], { nullable: true })
+  // return error if no user is found
+  errors?: FieldError[]
+
+  @Field(() => User, { nullable: true })
+  // return user if user exists
+  user?: User
 }
 
 @Resolver()
@@ -27,15 +49,27 @@ export class UserResolver {
     return user;
   }
 
-  @Mutation(() => User, { nullable: true})
+  @Mutation(() => UserResponse)
   async login(
     @Arg('options') options: RegisterInput,
     @Ctx() ctx: MyContext
-  ) : Promise<User | null> {
+  ): Promise<UserResponse> {
     const user = await ctx.em.findOne(User, { username: options.username });
-    if(!user) {
-      return null
+    if (!user) {
+      return {
+        errors: [{ field: "username", message: "User does not exist." }]
+      }
     }
-    return user;
+
+    const validatePw = await argon2.verify(user.password, options.password);
+    if (!validatePw) {
+      return {
+        errors: [{ field: "password", message: "Password is incorrect" }]
+      }
+    }
+
+    return {
+      user
+    }
   }
 }

@@ -22,3 +22,4 @@
    3. create register mutation
       1. use node-argon2 to hash password to save to DB
    4. create login mutation
+      1. handle errors with UserResponse and FieldError objectTypes
