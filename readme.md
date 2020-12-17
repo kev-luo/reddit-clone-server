@@ -27,3 +27,4 @@
       2. validate password with argon2.verify
 6. store cookie in user's browser with sessions for authentication
    1. set up redis store
+   2. once a cookie is saved to our browser, whenever we make followup requests, that cookie will be sent to the server along with the request. The server identifies me based on the cookie

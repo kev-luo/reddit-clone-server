@@ -42,6 +42,16 @@ export class UserResolver {
     return ctx.em.find(User, {});
   }
 
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() ctx: MyContext): Promise<User | null> {
+    // check for a userId in the session. if it doesn't exist that means the requester is not logged in because the login resolver sets the sessionId
+    if(!ctx.req.session.userId) {
+      return null;
+    }
+    const user = await ctx.em.findOne(User, { id: ctx.req.session.userId });
+    return user;
+  }
+
   @Mutation(() => UserResponse)
   async register(
     // typeGraphQL infers the type so we don't have to add () => RegisterInput
@@ -72,6 +82,9 @@ export class UserResolver {
         }
       }
     }
+
+    // store user id session, set cookie that keeps registered user logged in
+    ctx.req.session.userId = user.id;
 
     return {
       user
