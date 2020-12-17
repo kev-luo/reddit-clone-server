@@ -1,6 +1,6 @@
 import { User } from "../entities/User";
 import { MyContext } from "src/types";
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import argon2 from "argon2";
 
 // input types for args
@@ -37,6 +37,11 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => [User])
+  users(@Ctx() ctx: MyContext): Promise<User[]> {
+    return ctx.em.find(User, {});
+  }
+
   @Mutation(() => UserResponse)
   async register(
     // typeGraphQL infers the type so we don't have to add () => RegisterInput
@@ -45,12 +50,6 @@ export class UserResolver {
   ): Promise<UserResponse> {
     const hashedPassword = await argon2.hash(options.password);
 
-    const findUser = await ctx.em.findOne(User, { username: options.username });
-    if (findUser) {
-      return {
-        errors: [{ field: "username", message: "Username already exists." }]
-      }
-    }
     if(options.username.length <=2) {
       return {
         errors: [{ field: "username", message: "Username must be greater than 2 characters."}]
@@ -63,8 +62,17 @@ export class UserResolver {
     }
 
     const user = await ctx.em.create(User, { username: options.username, password: hashedPassword })
-    await ctx.em.persistAndFlush(user);
-    
+    try {
+      await ctx.em.persistAndFlush(user);
+    } catch(err) {
+      //  alternatively we could say: err.detail.includes("already exists")
+      if(err.code === "23505") {
+        return {
+          errors: [{ field: "username", message: "User already exists."}]
+        }
+      }
+    }
+
     return {
       user
     };
