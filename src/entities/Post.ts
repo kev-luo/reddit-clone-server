@@ -1,7 +1,7 @@
 import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
 import { Field, ObjectType } from "type-graphql";
 
-// field exposes this to our graphql schema
+// @field exposes field to our graphql schema (makes it queryable)
 
 @ObjectType()
 @Entity()
