@@ -21,3 +21,4 @@
    2. create user table in DB through a migration (set up a script so we don't have to remember the migration command for MikroORM)
    3. create register mutation
       1. use node-argon2 to hash password to save to DB
+   4. create login mutation

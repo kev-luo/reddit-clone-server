@@ -26,4 +26,16 @@ export class UserResolver {
     await ctx.em.persistAndFlush(user);
     return user;
   }
+
+  @Mutation(() => User, { nullable: true})
+  async login(
+    @Arg('options') options: RegisterInput,
+    @Ctx() ctx: MyContext
+  ) : Promise<User | null> {
+    const user = await ctx.em.findOne(User, { username: options.username });
+    if(!user) {
+      return null
+    }
+    return user;
+  }
 }
