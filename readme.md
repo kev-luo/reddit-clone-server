@@ -28,3 +28,10 @@
 6. store cookie in user's browser with sessions for authentication
    1. set up redis store
    2. once a cookie is saved to our browser, whenever we make followup requests, that cookie will be sent to the server along with the request. The server identifies me based on the cookie
+      1. req.session.userId = user.id 
+         1. stores data into session. In this case the user.id is sent to redis
+         2. redis is a key/value store. the value is our session object, in this case {userId: user.id}
+         3. express session middleware sets a cookie on the browser. The cookie value is a signed version of the redis key
+         4. when a user makes a request, the cookie is sent to the server
+         5. the server decrypts the cookie using the secret we defined in our session options (process.env.SESSION_SECRET)
+         6. the server then makes a request to redis, and redis takes the decrypted cookie(which is supposed to match a key in the redis store) and retrieves the associated value (the object containing our userId in step 2)
