@@ -26,4 +26,22 @@ export class PostResolver {
     await ctx.em.persistAndFlush(post)
     return post;
   }
+
+  @Mutation(() => Post, { nullable: true })
+  async updatePost(
+    @Arg("id") id: number,
+    // whenever we make something nullable, we have to explicitly state the type for typegraphql
+    @Arg("title", () => String, { nullable: true }) title: string,
+    @Ctx() ctx: MyContext
+  ): Promise<Post | null> {
+    const post = await ctx.em.findOne(Post, { id })
+    if(!post) {
+      return null
+    } 
+    if(post.title !== 'undefined') {
+      post.title = title;
+      await ctx.em.flush();
+    }
+    return post
+  }
 }
