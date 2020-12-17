@@ -37,16 +37,37 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-  @Mutation(() => User)
+  @Mutation(() => UserResponse)
   async register(
     // typeGraphQL infers the type so we don't have to add () => RegisterInput
     @Arg('options') options: RegisterInput,
     @Ctx() ctx: MyContext
-  ): Promise<User> {
+  ): Promise<UserResponse> {
     const hashedPassword = await argon2.hash(options.password);
+
+    const findUser = await ctx.em.findOne(User, { username: options.username });
+    if (findUser) {
+      return {
+        errors: [{ field: "username", message: "Username already exists." }]
+      }
+    }
+    if(options.username.length <=2) {
+      return {
+        errors: [{ field: "username", message: "Username must be greater than 2 characters."}]
+      }
+    }
+    if(options.password.length <=3) {
+      return {
+        errors: [{ field: "password", message: "Password must be greater than 3 characters."}]
+      }
+    }
+
     const user = await ctx.em.create(User, { username: options.username, password: hashedPassword })
     await ctx.em.persistAndFlush(user);
-    return user;
+    
+    return {
+      user
+    };
   }
 
   @Mutation(() => UserResponse)
