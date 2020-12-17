@@ -8,6 +8,10 @@ import { buildSchema } from "type-graphql";
 import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
+import redis from "redis";
+import session from "express-session";
+import connectRedis from "connect-redis";
+require('dotenv').config();
 
 const main = async () => {
   // connect to db
@@ -16,6 +20,25 @@ const main = async () => {
   await orm.getMigrator().up();
   // create server
   const app = express();
+
+  const RedisStore = connectRedis(session);
+  const redisClient = redis.createClient();
+
+  app.use(
+    session({
+      name: 'qid',
+      store: new RedisStore({ client: redisClient, disableTTL: true, disableTouch: true }),
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24, // 1 day
+        httpOnly: true, // you can't access cookie from frontend js code
+        sameSite: 'lax', // csrf protection
+        secure: __prod__ // cookie only works in https. usually only set true in production
+      },
+      secret: process.env.SESSION_SECRET,
+      resave: false,
+    })
+  )
+
   // setup apollo server
   const apolloServer = new ApolloServer({
     schema: await buildSchema({

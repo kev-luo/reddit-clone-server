@@ -25,4 +25,5 @@
    4. create login mutation
       1. handle errors with UserResponse and FieldError objectTypes
       2. validate password with argon2.verify
-   5. 
+6. store cookie in user's browser with sessions for authentication
+   1. set up redis store
