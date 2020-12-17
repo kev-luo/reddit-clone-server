@@ -1,20 +1,22 @@
 import { MikroORM } from "@mikro-orm/core";
+import express from "express";
 import { __prod__ } from "./constants";
-import { Post } from "./entities/Post";
 import microConfig from "./mikro-orm.config";
 
 const main = async () => {
+  // connect to db
   const orm = await MikroORM.init(microConfig);
+  // run migrations
+  await orm.getMigrator().up();
+  // create server
+  const app = express();
+  app.get("/", (_, res) => {
+    res.send("hello der");
+  })
 
-  // create instance of post
-  const post = orm.em.create(Post, { title: "my first post" })
-  // save to database
-  await orm.em.persistAndFlush(post);
-
-  console.log("----------------sql2---------------------")
-
-  // alternatively we can combine the two commands above by doing:
-  await orm.em.nativeInsert(Post, { title: "my second post" })
+  app.listen(4000, () => {
+    console.log('server started on localhost:4000');
+  })
 }
 
 main().catch(err => {
