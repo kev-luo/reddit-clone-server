@@ -11,6 +11,7 @@ import { UserResolver } from "./resolvers/user";
 import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
+import { MyContext } from "./types";
 require('dotenv').config();
 
 const main = async () => {
@@ -34,8 +35,9 @@ const main = async () => {
         sameSite: 'lax', // csrf protection
         secure: __prod__ // cookie only works in https. usually only set true in production
       },
-      secret: process.env.SESSION_SECRET,
+      secret: process.env.SESSION_SECRET!,
       resave: false,
+      saveUninitialized: false,
     })
   )
 
@@ -45,7 +47,7 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: () => ({ em: orm.em })
+    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }) // access session in resolvers by passing in req/res
   })
   // create graphql endpoint on express
   apolloServer.applyMiddleware({ app });

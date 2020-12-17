@@ -81,9 +81,9 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     @Arg('options') options: RegisterInput,
-    @Ctx() ctx: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    const user = await ctx.em.findOne(User, { username: options.username });
+    const user = await em.findOne(User, { username: options.username });
     if (!user) {
       return {
         errors: [{ field: "username", message: "User does not exist." }]
@@ -96,6 +96,9 @@ export class UserResolver {
         errors: [{ field: "password", message: "Password is incorrect" }]
       }
     }
+
+    // we can store anything inside session variable. here we're storing the user.id inside a newly created property called userId
+    req.session.userId = user.id
 
     return {
       user
