@@ -1,6 +1,7 @@
 require("dotenv").config();
 import { __prod__ } from "./constants";
 import { Post } from "./entities/Post";
+import { User } from "./entities/User";
 import { MikroORM } from "@mikro-orm/core";
 import path from "path";
 
@@ -9,7 +10,7 @@ export default {
     path: path.join(__dirname, './migrations'), // returns absolute path to the folder with migrations. 
     pattern: /^[\w-]+\d+\.[tj]s$/, // regex pattern for the migration files
   },
-  entities: [Post], // db tables
+  entities: [Post, User], // db tables
   dbName: 'redditclone',
   user: 'postgres',
   password: process.env.PSQL_PW,
