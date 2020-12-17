@@ -18,4 +18,12 @@ export class User {
   @Property({ type: 'date', onUpdate: () => new Date() })
   updatedAt = new Date();
 
+  @Field()
+  @Property({ type: "text", unique: true })
+  username!: string;
+
+  // leaving out @Field means we can't query for the password
+  @Property({ type: "text" })
+  password!: string;
+
 }
