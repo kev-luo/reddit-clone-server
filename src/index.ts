@@ -5,6 +5,7 @@ import microConfig from "./mikro-orm.config";
 import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { HelloResolver } from "./resolvers/hello";
+import { PostResolver } from "./resolvers/post";
 
 const main = async () => {
   // connect to db
@@ -16,9 +17,10 @@ const main = async () => {
   // setup apollo server
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
-      resolvers: [HelloResolver],
+      resolvers: [HelloResolver, PostResolver],
       validate: false,
-    })
+    }),
+    context: () => ({ em: orm.em })
   })
   // create graphql endpoint on express
   apolloServer.applyMiddleware({ app });

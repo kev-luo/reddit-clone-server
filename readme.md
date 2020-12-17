@@ -9,3 +9,4 @@
 
       // const posts = await orm.em.find(Post, {});
       // console.log(posts);
+3. give resolvers access to orm.em object through context
