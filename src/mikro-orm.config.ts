@@ -1,3 +1,4 @@
+require("dotenv").config();
 import { __prod__ } from "./constants";
 import { Post } from "./entities/Post";
 import { MikroORM } from "@mikro-orm/core";
@@ -10,6 +11,8 @@ export default {
   },
   entities: [Post], // db tables
   dbName: 'redditclone',
+  user: 'postgres',
+  password: process.env.PSQL_PW,
   type: 'postgresql',
   debug: !__prod__,
 } as Parameters<typeof MikroORM.init>[0];
