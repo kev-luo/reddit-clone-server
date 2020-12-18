@@ -2,6 +2,7 @@ import { User } from "../entities/User";
 import { MyContext } from "src/types";
 import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import argon2 from "argon2";
+// import { EntityManager } from "@mikro-orm/postgresql"
 
 // input types for args
 @InputType()
@@ -70,18 +71,36 @@ export class UserResolver {
         errors: [{ field: "password", message: "Password must be greater than 3 characters."}]
       }
     }
-
-    const user = await ctx.em.create(User, { username: options.username, password: hashedPassword })
-    try {
-      await ctx.em.persistAndFlush(user);
-    } catch(err) {
-      //  alternatively we could say: err.detail.includes("already exists")
-      if(err.code === "23505") {
-        return {
-          errors: [{ field: "username", message: "User already exists."}]
-        }
+    
+    const findUser = await ctx.em.findOne(User, {username: options.username})
+    if(findUser) {
+      return {
+        errors: [{ field: "username", message: "User already exists"}]
       }
     }
+    
+    const user = await ctx.em.create(User, { username: options.username, password: hashedPassword })
+    await ctx.em.persistAndFlush(user);
+    // let user;
+    // try {
+      // await ctx.em.persistAndFlush(user);
+    //   const result = await (ctx.em as EntityManager).createQueryBuilder(User).getKnexQuery().insert(
+    //     {
+    //       username: options.username,
+    //       password: hashedPassword,
+    //       created_at: new Date(),
+    //       updated_at: new Date(),
+    //     }
+    //   ).returning("*");
+    //   user = result[0]
+    // } catch(err) {
+    //   console.log(err);
+    //   if(err.detail.includes("already exists")) {
+    //     return {
+    //       errors: [{ field: "username", message: "User already exists."}]
+    //     }
+    //   }
+    // }
 
     // store user id session, set cookie that keeps registered user logged in
     ctx.req.session.userId = user.id;
