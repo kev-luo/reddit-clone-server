@@ -35,3 +35,4 @@
          4. when a user makes a request, the cookie is sent to the server
          5. the server decrypts the cookie using the secret we defined in our session options (process.env.SESSION_SECRET)
          6. the server then makes a request to redis, and redis takes the decrypted cookie(which is supposed to match a key in the redis store) and retrieves the associated value (the object containing our userId in step 2)
+         7. the retrieved value is stored in req.session

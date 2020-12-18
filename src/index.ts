@@ -12,6 +12,7 @@ import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import { MyContext } from "./types";
+import cors from "cors";
 require('dotenv').config();
 
 const main = async () => {
@@ -24,6 +25,12 @@ const main = async () => {
 
   const RedisStore = connectRedis(session);
   const redisClient = redis.createClient();
+
+  // cors applies to all routes now (globally)
+  app.use(cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  }))
 
   app.use(
     session({
@@ -50,7 +57,7 @@ const main = async () => {
     context: ({ req, res }): MyContext => ({ em: orm.em, req, res }) // access session in resolvers by passing in req/res
   })
   // create graphql endpoint on express
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({ app, cors: false });
 
   // listen for connections to port 4000
   app.listen(4000, () => {
