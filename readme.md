@@ -50,3 +50,5 @@ Technologies Used
 8.  add email property to User entity, run migration to add column to DB table
 9.  add forget password and change password mutations
 10. transition from MikroORM to TypeORM
+11. add relationships between user and post entities
+12. 
