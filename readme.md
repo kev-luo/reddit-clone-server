@@ -1,3 +1,13 @@
+# Reddit Clone - Server
+
+```
+Technologies Used
+- typescript            - apollo-server
+- redis                 - graphql
+- mikroORM              - nodemailer
+- argon2                - postgreSQL
+```  
+   
 1. setup typescript. 
    1. @types/node - gives us access to node type information. 
 2. setup mikroORM config and first entity
@@ -36,3 +46,4 @@
          5. the server decrypts the cookie using the secret we defined in our session options (process.env.SESSION_SECRET)
          6. the server then makes a request to redis, and redis takes the decrypted cookie(which is supposed to match a key in the redis store) and retrieves the associated value (the object containing our userId in step 2)
          7. the retrieved value is stored in req.session
+7.  set up forgot password utility with NodeMailer
