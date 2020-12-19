@@ -5,16 +5,18 @@ import { Post } from "../entities/Post";
 @Resolver()
 export class PostResolver {
   @Query(() => [Post])
-  posts(@Ctx() ctx: MyContext): Promise<Post[]> {
-    return ctx.em.find(Post, {});
+  async posts(@Ctx() ctx: MyContext): Promise<Post[]> {
+    const posts = await ctx.em.find(Post, {});
+    return posts
   }
 
   @Query(() => Post, { nullable: true }) // for graphQL we're going to return a post or null
-  post(
+  async post(
     @Arg('id', () => Int) id: number,
     @Ctx() ctx: MyContext
   ): Promise<Post | null> { // <Post | null> union in Typescript says this will return a Post or null
-    return ctx.em.findOne(Post, { id })
+    const post = await ctx.em.findOne(Post, { id })
+    return post
   }
 
   @Mutation(() => Post)

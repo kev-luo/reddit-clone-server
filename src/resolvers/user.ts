@@ -1,7 +1,9 @@
-import { User } from "../entities/User";
-import { MyContext } from "src/types";
 import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import argon2 from "argon2";
+
+import { User } from "../entities/User";
+import { MyContext } from "src/types";
+import { COOKIE_NAME } from "../constants";
 // import { EntityManager } from "@mikro-orm/postgresql"
 
 // input types for args
@@ -39,8 +41,9 @@ class UserResponse {
 @Resolver()
 export class UserResolver {
   @Query(() => [User])
-  users(@Ctx() ctx: MyContext): Promise<User[]> {
-    return ctx.em.find(User, {});
+  async users(@Ctx() ctx: MyContext): Promise<User[]> {
+    const users = await ctx.em.find(User, {});
+    return users;
   }
 
   @Query(() => User, { nullable: true })
@@ -142,7 +145,8 @@ export class UserResolver {
     @Ctx() ctx: MyContext
   ) {
     return new Promise((res) =>
-      ctx.req.session.destroy((err) => {
+    ctx.req.session.destroy((err) => {
+        ctx.res.clearCookie(COOKIE_NAME);
         if (err) {
           console.log(err);
           res(false);
