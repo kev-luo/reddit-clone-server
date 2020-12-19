@@ -49,3 +49,4 @@ Technologies Used
 7.  set up forgot password utility with NodeMailer
 8.  add email property to User entity, run migration to add column to DB table
 9.  add forget password and change password mutations
+10. transition from MikroORM to TypeORM
