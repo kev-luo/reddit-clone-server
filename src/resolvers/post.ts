@@ -1,59 +1,47 @@
-import { MyContext } from "src/types";
-import { Arg, Ctx, Int, Mutation, Query, Resolver } from "type-graphql";
+import { Arg, Int, Mutation, Query, Resolver } from "type-graphql";
 import { Post } from "../entities/Post";
 
 @Resolver()
 export class PostResolver {
   @Query(() => [Post])
-  async posts(@Ctx() ctx: MyContext): Promise<Post[]> {
-    const posts = await ctx.em.find(Post, {});
-    return posts
+  posts(): Promise<Post[]> {
+    return Post.find();
   }
 
   @Query(() => Post, { nullable: true }) // for graphQL we're going to return a post or null
-  async post(
-    @Arg('id', () => Int) id: number,
-    @Ctx() ctx: MyContext
-  ): Promise<Post | null> { // <Post | null> union in Typescript says this will return a Post or null
-    const post = await ctx.em.findOne(Post, { id })
-    return post
+  post(
+    @Arg('id', () => Int) id: number
+  ): Promise<Post | undefined> { // <Post | null> union in Typescript says this will return a Post or null
+    return Post.findOne(id)
   }
 
   @Mutation(() => Post)
-  async createPost(
-    @Arg("title") title: string,
-    @Ctx() ctx: MyContext
+  createPost(
+    @Arg("title") title: string
   ): Promise<Post> {
-    const post = ctx.em.create(Post, { title })
-    await ctx.em.persistAndFlush(post)
-    return post;
+    return Post.create({ title }).save();
   }
 
   @Mutation(() => Post, { nullable: true })
   async updatePost(
     @Arg("id") id: number,
     // whenever we make something nullable, we have to explicitly state the type for typegraphql
-    @Arg("title", () => String, { nullable: true }) title: string,
-    @Ctx() ctx: MyContext
-  ): Promise<Post | null> {
-    const post = await ctx.em.findOne(Post, { id })
+    @Arg("title", () => String, { nullable: true }) title: string): Promise<Post | null> {
+    const post = await Post.findOne(id)
     if (!post) {
       return null
     }
     if (post.title !== 'undefined') {
-      post.title = title;
-      await ctx.em.persistAndFlush(post);
+      await Post.update({ id }, { title })
     }
     return post
   }
 
   @Mutation(() => Boolean)
   async deletePost(
-    @Arg("id") id: number,
-    @Ctx() ctx: MyContext
-  ): Promise<Boolean> {
+    @Arg("id") id: number): Promise<Boolean> {
     try {
-      await ctx.em.nativeDelete(Post, { id });
+      await Post.delete(id);
     } catch (err) {
       return false
     }

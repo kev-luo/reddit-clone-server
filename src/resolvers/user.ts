@@ -1,14 +1,13 @@
-import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import argon2 from "argon2";
-import { v4 } from "uuid";
-
-import { User } from "../entities/User";
 import { MyContext } from "src/types";
+import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-graphql";
+import { getConnection } from "typeorm";
+import { v4 } from "uuid";
 import { COOKIE_NAME, FORGET_PW_PREFIX } from "../constants";
-import { AuthInput } from "./AuthInput";
-import { validateRegister } from "../utils/validateRegister";
+import { User } from "../entities/User";
 import { sendEmail } from "../utils/sendEmail";
-// import { EntityManager } from "@mikro-orm/postgresql"
+import { validateRegister } from "../utils/validateRegister";
+import { AuthInput } from "./AuthInput";
 
 @ObjectType()
 class FieldError {
@@ -35,19 +34,17 @@ class UserResponse {
 @Resolver()
 export class UserResolver {
   @Query(() => [User])
-  async users(@Ctx() ctx: MyContext): Promise<User[]> {
-    const users = await ctx.em.find(User, {});
-    return users;
+  users(): Promise<User[]> {
+    return User.find();
   }
 
   @Query(() => User, { nullable: true })
-  async me(@Ctx() ctx: MyContext): Promise<User | null> {
+  me(@Ctx() ctx: MyContext) {
     // check for a userId in the session. if it doesn't exist that means the requester is not logged in because the login resolver sets the sessionId
     if (!ctx.req.session.userId) {
       return null;
     }
-    const user = await ctx.em.findOne(User, { id: ctx.req.session.userId });
-    return user;
+    return User.findOne(ctx.req.session.userId);
   }
 
   @Mutation(() => UserResponse)
@@ -64,35 +61,26 @@ export class UserResolver {
 
     const hashedPassword = await argon2.hash(options.password);
 
-    const findUser = await ctx.em.findOne(User, { username: options.username })
-    if (findUser) {
-      return {
-        errors: [{ field: "username", message: "User already exists" }]
+    let user;
+    try {
+      const result = await getConnection().createQueryBuilder().insert().into(User).values({
+        username: options.username,
+        email: options.email,
+        password: hashedPassword,
+      }).returning("*").execute();
+      user = result.raw[0]
+    } catch (err) {
+      if (err.code === "23505") {
+        return {
+          errors: [
+            {
+              field: "username",
+              message: "User already exists."
+            }
+          ]
+        }
       }
     }
-
-    const user = await ctx.em.create(User, { username: options.username, email: options.email, password: hashedPassword })
-    await ctx.em.persistAndFlush(user);
-    // let user;
-    // try {
-    // await ctx.em.persistAndFlush(user);
-    //   const result = await (ctx.em as EntityManager).createQueryBuilder(User).getKnexQuery().insert(
-    //     {
-    //       username: options.username,
-    //       password: hashedPassword,
-    //       created_at: new Date(),
-    //       updated_at: new Date(),
-    //     }
-    //   ).returning("*");
-    //   user = result[0]
-    // } catch(err) {
-    //   console.log(err);
-    //   if(err.detail.includes("already exists")) {
-    //     return {
-    //       errors: [{ field: "username", message: "User already exists."}]
-    //     }
-    //   }
-    // }
 
     // store user id session, set cookie that keeps registered user logged in
     ctx.req.session.userId = user.id;
@@ -106,9 +94,9 @@ export class UserResolver {
   async login(
     @Arg('usernameOrEmail') usernameOrEmail: string,
     @Arg("password") password: string,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, usernameOrEmail.includes("@") ? { email: usernameOrEmail } : { username: usernameOrEmail });
+    const user = await User.findOne(usernameOrEmail.includes("@") ? { where: { email: usernameOrEmail } } : { where: { username: usernameOrEmail } });
     if (!user) {
       return {
         errors: [{ field: "usernameOrEmail", message: "User does not exist." }]
@@ -152,7 +140,8 @@ export class UserResolver {
     @Arg("email") email: string,
     @Ctx() ctx: MyContext
   ) {
-    const user = await ctx.em.findOne(User, { email })
+    // we have to specify where if we're looking up based on column that isn't primary key
+    const user = await User.findOne({ where: { email } })
     if (!user) {
       return true
     }
@@ -196,7 +185,8 @@ export class UserResolver {
       }
     }
 
-    const user = await ctx.em.findOne(User, { id: parseInt(userId) })
+    const userIdNum = parseInt(userId);
+    const user = await User.findOne(userIdNum);
 
     if (!user) {
       return {
@@ -209,8 +199,7 @@ export class UserResolver {
       }
     }
 
-    user.password = await argon2.hash(newPassword);
-    await ctx.em.persistAndFlush(user);
+    await User.update({ id: userIdNum }, { password: await argon2.hash(newPassword) })
 
     // delete redis token so they can't change the password using the same key multiple times
     await ctx.redis.del(key);

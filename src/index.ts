@@ -1,8 +1,7 @@
 import "reflect-metadata";
-import { MikroORM } from "@mikro-orm/core";
+import {createConnection} from "typeorm";
 import express from "express";
 import { COOKIE_NAME, __prod__ } from "./constants";
-import microConfig from "./mikro-orm.config";
 import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
 import { HelloResolver } from "./resolvers/hello";
@@ -13,13 +12,22 @@ import session from "express-session";
 import connectRedis from "connect-redis";
 import { MyContext } from "./types";
 import cors from "cors";
+import { User } from "./entities/User";
+import { Post } from "./entities/Post";
 require('dotenv').config();
 
 const main = async () => {
-  // connect to db
-  const orm = await MikroORM.init(microConfig);  
-  // run migrations
-  // await orm.getMigrator().up('Migration20201219055752');
+
+  const conn = await createConnection({
+    type: 'postgres',
+    database: 'lireddit',
+    username: 'postgres',
+    password: process.env.PSQL_PW,
+    logging: true,
+    synchronize: true,
+    entities: [Post, User]
+  })
+  
   // create server
   const app = express();
 
@@ -54,7 +62,7 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res, redis }) // access session in resolvers by passing in req/res
+    context: ({ req, res }): MyContext => ({ req, res, redis }) // access session in resolvers by passing in req/res
   })
   // create graphql endpoint on express
   apolloServer.applyMiddleware({ app, cors: false });

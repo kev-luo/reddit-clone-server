@@ -1,11 +1,11 @@
 import { Field, ObjectType } from "type-graphql";
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { BaseEntity, Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 // @field exposes field to our graphql schema (makes it queryable)
 
 @ObjectType()
 @Entity()
-export class User {
+export class User extends BaseEntity{
   @Field()
   @PrimaryGeneratedColumn()
   id!: number;
