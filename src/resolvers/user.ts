@@ -6,7 +6,7 @@ import argon2 from "argon2";
 
 // input types for args
 @InputType()
-class RegisterInput {
+class AuthInput {
   // () => String can be used to override or explicity set the type however, if we don't include it, the type will be implicitly inferred
   @Field()
   username: string
@@ -46,7 +46,7 @@ export class UserResolver {
   @Query(() => User, { nullable: true })
   async me(@Ctx() ctx: MyContext): Promise<User | null> {
     // check for a userId in the session. if it doesn't exist that means the requester is not logged in because the login resolver sets the sessionId
-    if(!ctx.req.session.userId) {
+    if (!ctx.req.session.userId) {
       return null;
     }
     const user = await ctx.em.findOne(User, { id: ctx.req.session.userId });
@@ -56,34 +56,34 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async register(
     // typeGraphQL infers the type so we don't have to add () => RegisterInput
-    @Arg('options') options: RegisterInput,
+    @Arg('options') options: AuthInput,
     @Ctx() ctx: MyContext
   ): Promise<UserResponse> {
     const hashedPassword = await argon2.hash(options.password);
 
-    if(options.username.length <=2) {
+    if (options.username.length <= 2) {
       return {
-        errors: [{ field: "username", message: "Username must be greater than 2 characters."}]
+        errors: [{ field: "username", message: "Username must be greater than 2 characters." }]
       }
     }
-    if(options.password.length <=3) {
+    if (options.password.length <= 3) {
       return {
-        errors: [{ field: "password", message: "Password must be greater than 3 characters."}]
+        errors: [{ field: "password", message: "Password must be greater than 3 characters." }]
       }
     }
-    
-    const findUser = await ctx.em.findOne(User, {username: options.username})
-    if(findUser) {
+
+    const findUser = await ctx.em.findOne(User, { username: options.username })
+    if (findUser) {
       return {
-        errors: [{ field: "username", message: "User already exists"}]
+        errors: [{ field: "username", message: "User already exists" }]
       }
     }
-    
+
     const user = await ctx.em.create(User, { username: options.username, password: hashedPassword })
     await ctx.em.persistAndFlush(user);
     // let user;
     // try {
-      // await ctx.em.persistAndFlush(user);
+    // await ctx.em.persistAndFlush(user);
     //   const result = await (ctx.em as EntityManager).createQueryBuilder(User).getKnexQuery().insert(
     //     {
     //       username: options.username,
@@ -112,7 +112,7 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg('options') options: RegisterInput,
+    @Arg('options') options: AuthInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     const user = await em.findOne(User, { username: options.username });
@@ -135,5 +135,21 @@ export class UserResolver {
     return {
       user
     }
+  }
+
+  @Mutation(() => Boolean)
+  logout(
+    @Ctx() ctx: MyContext
+  ) {
+    return new Promise((res) =>
+      ctx.req.session.destroy((err) => {
+        if (err) {
+          console.log(err);
+          res(false);
+          return
+        }
+        res(true);
+      })
+    )
   }
 }
