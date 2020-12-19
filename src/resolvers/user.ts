@@ -1,11 +1,13 @@
 import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import argon2 from "argon2";
+import { v4 } from "uuid";
 
 import { User } from "../entities/User";
 import { MyContext } from "src/types";
-import { COOKIE_NAME } from "../constants";
+import { COOKIE_NAME, FORGET_PW_PREFIX } from "../constants";
 import { AuthInput } from "./AuthInput";
-import { validateRegister } from "src/utils/validateRegister";
+import { validateRegister } from "../utils/validateRegister";
+import { sendEmail } from "../utils/sendEmail";
 // import { EntityManager } from "@mikro-orm/postgresql"
 
 @ObjectType()
@@ -109,7 +111,7 @@ export class UserResolver {
     const user = await em.findOne(User, usernameOrEmail.includes("@") ? { email: usernameOrEmail } : { username: usernameOrEmail });
     if (!user) {
       return {
-        errors: [{ field: "username", message: "User does not exist." }]
+        errors: [{ field: "usernameOrEmail", message: "User does not exist." }]
       }
     }
 
@@ -145,12 +147,21 @@ export class UserResolver {
     )
   }
 
-  // @Mutation(() => Boolean)
-  // async forgotPw(
-  //   @Arg("email") email: string,
-  //   @Ctx() ctx: MyContext
-  // ) {
-  //   // const user = await ctx.em.findOne(User, { email })
-  //   return true;
-  // }
+  @Mutation(() => Boolean)
+  async forgotPw(
+    @Arg("email") email: string,
+    @Ctx() ctx: MyContext
+  ) {
+    const user = await ctx.em.findOne(User, { email })
+    if (!user) {
+      return true
+    }
+    const token = v4();
+    await ctx.redis.set(`${FORGET_PW_PREFIX}${token}`, user.id, 'ex', 1000 * 60 * 60 * 24)
+
+    const link = `<a href="http://localhost:3000/change-password/${token}">Reset Password</a>`
+    sendEmail(email, "Reset Password",link)
+
+    return true
+  }
 }
