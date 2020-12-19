@@ -1,20 +1,12 @@
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import argon2 from "argon2";
 
 import { User } from "../entities/User";
 import { MyContext } from "src/types";
 import { COOKIE_NAME } from "../constants";
+import { AuthInput } from "./AuthInput";
+import { validateRegister } from "src/utils/validateRegister";
 // import { EntityManager } from "@mikro-orm/postgresql"
-
-// input types for args
-@InputType()
-class AuthInput {
-  // () => String can be used to override or explicity set the type however, if we don't include it, the type will be implicitly inferred
-  @Field()
-  username: string
-  @Field()
-  password: string
-}
 
 @ObjectType()
 class FieldError {
@@ -62,18 +54,13 @@ export class UserResolver {
     @Arg('options') options: AuthInput,
     @Ctx() ctx: MyContext
   ): Promise<UserResponse> {
-    const hashedPassword = await argon2.hash(options.password);
+    const errors = validateRegister(options);
 
-    if (options.username.length <= 2) {
-      return {
-        errors: [{ field: "username", message: "Username must be greater than 2 characters." }]
-      }
+    if (errors) {
+      return { errors };
     }
-    if (options.password.length <= 3) {
-      return {
-        errors: [{ field: "password", message: "Password must be greater than 3 characters." }]
-      }
-    }
+
+    const hashedPassword = await argon2.hash(options.password);
 
     const findUser = await ctx.em.findOne(User, { username: options.username })
     if (findUser) {
@@ -82,7 +69,7 @@ export class UserResolver {
       }
     }
 
-    const user = await ctx.em.create(User, { username: options.username, password: hashedPassword })
+    const user = await ctx.em.create(User, { username: options.username, email: options.email, password: hashedPassword })
     await ctx.em.persistAndFlush(user);
     // let user;
     // try {
@@ -115,17 +102,18 @@ export class UserResolver {
 
   @Mutation(() => UserResponse)
   async login(
-    @Arg('options') options: AuthInput,
+    @Arg('usernameOrEmail') usernameOrEmail: string,
+    @Arg("password") password: string,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(User, { username: options.username });
+    const user = await em.findOne(User, usernameOrEmail.includes("@") ? { email: usernameOrEmail } : { username: usernameOrEmail });
     if (!user) {
       return {
         errors: [{ field: "username", message: "User does not exist." }]
       }
     }
 
-    const validatePw = await argon2.verify(user.password, options.password);
+    const validatePw = await argon2.verify(user.password, password);
     if (!validatePw) {
       return {
         errors: [{ field: "password", message: "Password is incorrect" }]
@@ -145,7 +133,7 @@ export class UserResolver {
     @Ctx() ctx: MyContext
   ) {
     return new Promise((res) =>
-    ctx.req.session.destroy((err) => {
+      ctx.req.session.destroy((err) => {
         ctx.res.clearCookie(COOKIE_NAME);
         if (err) {
           console.log(err);
@@ -156,4 +144,13 @@ export class UserResolver {
       })
     )
   }
+
+  // @Mutation(() => Boolean)
+  // async forgotPw(
+  //   @Arg("email") email: string,
+  //   @Ctx() ctx: MyContext
+  // ) {
+  //   // const user = await ctx.em.findOne(User, { email })
+  //   return true;
+  // }
 }

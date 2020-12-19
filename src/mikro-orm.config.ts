@@ -11,7 +11,7 @@ export default {
     pattern: /^[\w-]+\d+\.[tj]s$/, // regex pattern for the migration files
   },
   entities: [Post, User], // db tables
-  dbName: 'redditclone',
+  dbName: 'redditclone3',
   user: 'postgres',
   password: process.env.PSQL_PW,
   type: 'postgresql',

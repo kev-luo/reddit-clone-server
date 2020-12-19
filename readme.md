@@ -47,3 +47,4 @@ Technologies Used
          6. the server then makes a request to redis, and redis takes the decrypted cookie(which is supposed to match a key in the redis store) and retrieves the associated value (the object containing our userId in step 2)
          7. the retrieved value is stored in req.session
 7.  set up forgot password utility with NodeMailer
+8.  add email property to User entity, run migration to add column to DB table

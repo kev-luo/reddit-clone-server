@@ -17,9 +17,9 @@ require('dotenv').config();
 
 const main = async () => {
   // connect to db
-  const orm = await MikroORM.init(microConfig);
+  const orm = await MikroORM.init(microConfig);  
   // run migrations
-  await orm.getMigrator().up();
+  await orm.getMigrator().up('Migration20201219055752');
   // create server
   const app = express();
 

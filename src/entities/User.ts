@@ -22,6 +22,10 @@ export class User {
   @Property({ type: "text", unique: true })
   username!: string;
 
+  @Field()
+  @Property({ type: "text", unique: true })
+  email!: string;
+
   // leaving out @Field means we can't query for the password
   @Property({ type: "text" })
   password!: string;
