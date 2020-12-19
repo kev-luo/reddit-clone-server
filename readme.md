@@ -2,7 +2,7 @@
 
 ```
 Technologies Used
-- typescript            - apollo-server
+- typescript            - apollo-server           - uuid
 - redis                 - graphql
 - mikroORM              - nodemailer
 - argon2                - postgreSQL
@@ -48,3 +48,4 @@ Technologies Used
          7. the retrieved value is stored in req.session
 7.  set up forgot password utility with NodeMailer
 8.  add email property to User entity, run migration to add column to DB table
+9.  add forget password and change password mutations

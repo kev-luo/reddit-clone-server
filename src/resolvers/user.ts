@@ -182,8 +182,9 @@ export class UserResolver {
       }
     }
 
+    const key = `${FORGET_PW_PREFIX}${token}`
     // check if token matches token stored in redis
-    const userId = await ctx.redis.get(`${FORGET_PW_PREFIX}${token}`);
+    const userId = await ctx.redis.get(key);
     if (!userId) {
       return {
         errors: [
@@ -209,6 +210,13 @@ export class UserResolver {
     }
 
     user.password = await argon2.hash(newPassword);
+    await ctx.em.persistAndFlush(user);
+
+    // delete redis token so they can't change the password using the same key multiple times
+    await ctx.redis.del(key);
+
+    // login user after changing password
+    ctx.req.session.userId = user.id;
 
     return { user }
   }
