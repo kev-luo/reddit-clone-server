@@ -160,8 +160,56 @@ export class UserResolver {
     await ctx.redis.set(`${FORGET_PW_PREFIX}${token}`, user.id, 'ex', 1000 * 60 * 60 * 24)
 
     const link = `<a href="http://localhost:3000/change-password/${token}">Reset Password</a>`
-    sendEmail(email, "Reset Password",link)
+    sendEmail(email, "Reset Password", link)
 
     return true
+  }
+
+  @Mutation(() => UserResponse)
+  async changePw(
+    @Arg("token") token: string,
+    @Arg("newPassword") newPassword: string,
+    @Ctx() ctx: MyContext
+  ): Promise<UserResponse> {
+    if (newPassword.length <= 3) {
+      return {
+        errors: [
+          {
+            field: "newPassword",
+            message: "Password must be greater than 3 characters"
+          }
+        ]
+      }
+    }
+
+    // check if token matches token stored in redis
+    const userId = await ctx.redis.get(`${FORGET_PW_PREFIX}${token}`);
+    if (!userId) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "Token expired."
+          }
+        ]
+      }
+    }
+
+    const user = await ctx.em.findOne(User, { id: parseInt(userId) })
+
+    if (!user) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "user no longer exists",
+          }
+        ]
+      }
+    }
+
+    user.password = await argon2.hash(newPassword);
+
+    return { user }
   }
 }
