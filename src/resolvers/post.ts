@@ -127,9 +127,11 @@ export class PostResolver {
 
   @Mutation(() => Boolean)
   async deletePost(
-    @Arg("id") id: number): Promise<Boolean> {
+    @Arg("id") id: number,
+    @Ctx() ctx: MyContext
+  ): Promise<Boolean> {
     try {
-      await Post.delete(id);
+      await Post.delete({ id, authorId: ctx.req.session.userId});
     } catch (err) {
       return false
     }
