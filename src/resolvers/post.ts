@@ -111,21 +111,28 @@ export class PostResolver {
   }
 
   @Mutation(() => Post, { nullable: true })
+  @UseMiddleware(isAuth)
   async updatePost(
     @Arg("id") id: number,
     // whenever we make something nullable, we have to explicitly state the type for typegraphql
-    @Arg("title", () => String, { nullable: true }) title: string): Promise<Post | null> {
-    const post = await Post.findOne(id)
-    if (!post) {
-      return null
-    }
-    if (post.title !== 'undefined') {
-      await Post.update({ id }, { title })
-    }
-    return post
+    @Arg("title", () => String, { nullable: true }) title: string,
+    @Arg("text", () => String, { nullable: true }) text: string,
+    @Ctx() ctx: MyContext
+    ): Promise<Post | null> {
+    const updatedPost = await getConnection()
+      .createQueryBuilder()
+      .update(Post)
+      .set({ title, text })
+      .where("id = :id", { id })
+      .andWhere('"authorId" = :authorId', { authorId: ctx.req.session.userId })
+      .returning("*")
+      .execute();
+    
+      return updatedPost.raw[0];
   }
 
   @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
   async deletePost(
     @Arg("id", () => Int) id: number,
     @Ctx() ctx: MyContext
