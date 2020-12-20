@@ -51,4 +51,5 @@ Technologies Used
 9.  add forget password and change password mutations
 10. transition from MikroORM to TypeORM
 11. add relationships between user and post entities
-12. 
+12. auth middleware to check if user is logged in when making post
+13. add pagination to posts resolver
