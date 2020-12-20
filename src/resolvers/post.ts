@@ -2,6 +2,7 @@ import { MyContext } from "src/types";
 import { Arg, Ctx, Field, FieldResolver, InputType, Int, Mutation, ObjectType, Query, Resolver, Root, UseMiddleware } from "type-graphql";
 import { getConnection } from "typeorm";
 import { Post } from "../entities/Post";
+import { Upvote } from "../entities/Upvote";
 import { isAuth } from "../middleware/isAuth";
 
 @InputType()
@@ -75,8 +76,8 @@ export class PostResolver {
     // }
 
     // const posts = await queryBuilder.getMany()
-      console.log(posts);
-      
+    console.log(posts);
+
     // if we're able to retrieve the number of posts requested PLUS ONE, then we know that there are more posts to fetch 
     return { posts: posts.slice(0, hardLimit), hasMore: posts.length === hardLimitPlusOne }
   }
@@ -120,6 +121,30 @@ export class PostResolver {
     } catch (err) {
       return false
     }
+    return true
+  }
+
+  @Mutation(() => Boolean)
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg('postId', () => Int) postId: number,
+    @Arg("value", () => Int) value: number,
+    @Ctx() ctx: MyContext
+  ) {
+    const isUpvote = value !== -1;
+    const upvoteValue = isUpvote ? 1 : -1;
+    const { userId } = ctx.req.session;
+    await Upvote.insert({
+      userId,
+      postId,
+      value: upvoteValue,
+    })
+    // just writing sql to update table
+    getConnection().query(`
+      UPDATE post p
+      SET p.points = p.points + $1
+      where p.id = $2
+    `, [upvoteValue, postId])
     return true
   }
 }
