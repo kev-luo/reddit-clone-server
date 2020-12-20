@@ -1,5 +1,5 @@
 import { MyContext } from "src/types";
-import { Arg, Ctx, Field, InputType, Int, Mutation, Query, Resolver, UseMiddleware } from "type-graphql";
+import { Arg, Ctx, Field, FieldResolver, InputType, Int, Mutation, Query, Resolver, Root, UseMiddleware } from "type-graphql";
 import { getConnection } from "typeorm";
 import { Post } from "../entities/Post";
 import { isAuth } from "../middleware/isAuth";
@@ -12,11 +12,18 @@ class PostInput {
   text: string
 }
 
-@Resolver()
+@Resolver(Post)
 export class PostResolver {
+  @FieldResolver(() => String)
+  textSnippet(
+    @Root() root: Post
+  ) {
+    return root.text.slice(0, 2);
+  }
+
   @Query(() => [Post])
   posts(
-    @Arg("limit") limit: number,
+    @Arg("limit", () => Int) limit: number,
     @Arg("cursor", () => String, { nullable: true }) cursor: string | null
   ): Promise<Post[]> {
     const hardLimit = Math.min(50, limit);
@@ -26,7 +33,7 @@ export class PostResolver {
       .orderBy('"createdAt"', "DESC")
       .take(hardLimit);
 
-      // number of posts determined by limit. posts are retrieved beginning one after the cursor (we want all posts older than the cursor post)
+    // number of posts determined by limit. posts are retrieved beginning one after the cursor (we want all posts older than the cursor post)
     if (cursor) {
       queryBuilder.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) })
     }
