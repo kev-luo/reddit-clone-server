@@ -54,3 +54,4 @@ Technologies Used
 12. auth middleware to check if user is logged in when making post
 13. add pagination to posts resolver
 14. add paginatedPosts objectType to inform client whether or not there are more posts to be fetched
+15. replace queryBuilder in posts resolver with raw SQL for better syntax
