@@ -55,3 +55,5 @@ Technologies Used
 13. add pagination to posts resolver
 14. add paginatedPosts objectType to inform client whether or not there are more posts to be fetched
 15. replace queryBuilder in posts resolver with raw SQL for better syntax
+16. add field resolver in User resolver to only show email for posts of the logged in user
+17. add upvote entity
