@@ -57,3 +57,5 @@ Technologies Used
 15. replace queryBuilder in posts resolver with raw SQL for better syntax
 16. add field resolver in User resolver to only show email for posts of the logged in user
 17. add upvote entity
+18. add vote resolver using raw sql and transactions to update Upvote table as well as the Post table containing each post's total points
+19. add vote status to post entity to indicate whether we've voted on the post or not

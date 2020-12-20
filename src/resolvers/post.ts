@@ -27,21 +27,30 @@ export class PostResolver {
   textSnippet(
     @Root() root: Post
   ) {
-    return root.text.slice(0, 2);
+    return `${root.text.slice(0, 15)}...`;
   }
 
   @Query(() => PaginatedPosts)
   async posts(
     @Arg("limit", () => Int) limit: number,
-    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
+    @Ctx() ctx: MyContext
   ): Promise<PaginatedPosts> {
     const hardLimit = Math.min(50, limit);
     const hardLimitPlusOne = hardLimit + 1;
 
     const replacements: any[] = [hardLimitPlusOne];
+
+    let cursorIndex = 3;
+
+    if (ctx.req.session.userId) {
+      replacements.push(ctx.req.session.userId);
+    }
+
     // number of posts determined by limit. posts are retrieved beginning one after the cursor (we want all posts older than the cursor post)
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)))
+      cursorIndex = replacements.length;
     }
 
     const posts = await getConnection().query(`
@@ -52,10 +61,14 @@ export class PostResolver {
       'email', u.email,
       'createdAt', u."createdAt",
       'updatedAt', u."updatedAt"
-      ) author
+      ) author,
+    ${ctx.req.session.userId
+        ? '(SELECT value FROM upvote WHERE "userId" = $2 AND "postId" = p.id) "voteStatus" '
+        : 'null as "voteStatus"'
+      }
     FROM post p
-    INNER JOIN public.user u ON u.id = p."creatorId"
-    ${cursor ? `WHERE p."createdAt" < $2` : ""}
+    INNER JOIN public.user u ON u.id = p."authorId"
+    ${cursor ? `WHERE p."createdAt" < $${cursorIndex}` : ""}
     ORDER BY p."createdAt" DESC
     LIMIT $1
     `, replacements)
@@ -85,7 +98,7 @@ export class PostResolver {
   post(
     @Arg('id', () => Int) id: number
   ): Promise<Post | undefined> { // <Post | null> union in Typescript says this will return a Post or null
-    return Post.findOne(id)
+    return Post.findOne(id, { relations: ["author"] })
   }
 
   @Mutation(() => Post)
@@ -94,7 +107,7 @@ export class PostResolver {
     @Arg("input") input: PostInput,
     @Ctx() ctx: MyContext
   ): Promise<Post> {
-    return Post.create({ ...input, creatorId: ctx.req.session.userId }).save();
+    return Post.create({ ...input, authorId: ctx.req.session.userId }).save();
   }
 
   @Mutation(() => Post, { nullable: true })
@@ -149,7 +162,7 @@ export class PostResolver {
           UPDATE post
           SET points = points + $1
           WHERE id = $2
-        `, [2*upvoteValue, postId])
+        `, [2 * upvoteValue, postId])
       })
     } else if (!upvote) {
       // if user has noever voted on this post

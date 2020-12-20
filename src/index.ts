@@ -15,6 +15,7 @@ import cors from "cors";
 import { User } from "./entities/User";
 import { Post } from "./entities/Post";
 import { Upvote } from "./entities/Upvote";
+import path from "path";
 require('dotenv').config();
 
 const main = async () => {
@@ -26,8 +27,13 @@ const main = async () => {
     password: process.env.PSQL_PW,
     logging: true,
     synchronize: true,
+    migrations: [path.join(__dirname, "./migrations/*")],
     entities: [Post, User, Upvote]
   })
+  await conn.runMigrations();
+  // await Upvote.delete({});
+  // await Post.delete({});
+  // await User.delete({});
   
   // create server
   const app = express();
