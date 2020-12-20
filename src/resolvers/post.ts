@@ -127,11 +127,19 @@ export class PostResolver {
 
   @Mutation(() => Boolean)
   async deletePost(
-    @Arg("id") id: number,
+    @Arg("id", () => Int) id: number,
     @Ctx() ctx: MyContext
   ): Promise<Boolean> {
     try {
-      await Post.delete({ id, authorId: ctx.req.session.userId});
+      // non-cascade method
+      // const post = await Post.findOne(id);
+      // if(!post) return false;
+      // if(post.authorId !== ctx.req.session.userId) throw new Error("Not authorized");
+      // await Upvote.delete({ postId: id });
+      // await Post.delete({ id });
+
+      // cascade method includes adding onDelete option in Upvote entity
+      await Post.delete({ id, authorId: ctx.req.session.userId })
     } catch (err) {
       return false
     }
