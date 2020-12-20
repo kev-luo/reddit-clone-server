@@ -14,6 +14,7 @@ import { MyContext } from "./types";
 import cors from "cors";
 import { User } from "./entities/User";
 import { Post } from "./entities/Post";
+import { Upvote } from "./entities/Upvote";
 require('dotenv').config();
 
 const main = async () => {
@@ -25,7 +26,7 @@ const main = async () => {
     password: process.env.PSQL_PW,
     logging: true,
     synchronize: true,
-    entities: [Post, User]
+    entities: [Post, User, Upvote]
   })
   
   // create server

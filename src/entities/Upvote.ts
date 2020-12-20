@@ -17,7 +17,7 @@ export class Upvote extends BaseEntity {
   userId: number;
 
   @Field(() => User)
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, user => user.upvotes)
   user: User;
 
   @Field()
@@ -25,6 +25,6 @@ export class Upvote extends BaseEntity {
   postId: number;
 
   @Field(() => Post)
-  @ManyToOne(() => Post)
+  @ManyToOne(() => Post, post => post.upvotes)
   post: Post;
 }

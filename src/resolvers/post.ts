@@ -76,7 +76,6 @@ export class PostResolver {
     // }
 
     // const posts = await queryBuilder.getMany()
-    console.log(posts);
 
     // if we're able to retrieve the number of posts requested PLUS ONE, then we know that there are more posts to fetch 
     return { posts: posts.slice(0, hardLimit), hasMore: posts.length === hardLimitPlusOne }
@@ -134,17 +133,45 @@ export class PostResolver {
     const isUpvote = value !== -1;
     const upvoteValue = isUpvote ? 1 : -1;
     const { userId } = ctx.req.session;
-    await Upvote.insert({
-      userId,
-      postId,
-      value: upvoteValue,
-    })
+
+    const upvote = await Upvote.findOne({ where: { postId, userId } })
+
     // just writing sql to update table
-    getConnection().query(`
-      UPDATE post p
-      SET p.points = p.points + $1
-      where p.id = $2
-    `, [upvoteValue, postId])
+    if (upvote && upvote.value !== upvoteValue) {
+      // if the user has already voted on this post but wants to change their vote
+      await getConnection().transaction(async (txnMgr) => {
+        await txnMgr.query(`
+          UPDATE upvote
+          SET value = $1
+          WHERE "postId" = $2 AND "userId" = $3
+        `, [upvoteValue, postId, userId])
+        await txnMgr.query(`
+          UPDATE post
+          SET points = points + $1
+          WHERE id = $2
+        `, [2*upvoteValue, postId])
+      })
+    } else if (!upvote) {
+      // if user has noever voted on this post
+      await getConnection().transaction(async (txnMgr) => {
+        await txnMgr.query(`
+          INSERT INTO upvote ("userId", "postId", "value")
+          VALUES ($1, $2, $3)
+        `, [userId, postId, upvoteValue])
+
+        await txnMgr.query(`
+          UPDATE post
+          SET points = points + $1
+          WHERE id = $2
+        `, [upvoteValue, postId])
+      })
+    }
+    // await Upvote.insert({
+    //   userId,
+    //   postId,
+    //   value: upvoteValue,
+    // })
+
     return true
   }
 }

@@ -1,5 +1,6 @@
 import { Field, ObjectType } from "type-graphql";
-import { BaseEntity, Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { BaseEntity, Column, CreateDateColumn, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Upvote } from "./Upvote";
 import { User } from "./User";
 
 // @field exposes field to our graphql schema (makes it queryable)
@@ -39,6 +40,6 @@ export class Post extends BaseEntity {
   @ManyToOne(() => User, user => user.posts)
   author: User;
 
-  // @OneToMany(() => Upvote, upvote => upvote.post)
-  // upvotes: Upvote[];
+  @OneToMany(() => Upvote, upvote => upvote.post)
+  upvotes: Upvote[];
 }
