@@ -1,5 +1,5 @@
 import { MyContext } from "src/types";
-import { Arg, Ctx, Field, FieldResolver, InputType, Int, Mutation, Query, Resolver, Root, UseMiddleware } from "type-graphql";
+import { Arg, Ctx, Field, FieldResolver, InputType, Int, Mutation, ObjectType, Query, Resolver, Root, UseMiddleware } from "type-graphql";
 import { getConnection } from "typeorm";
 import { Post } from "../entities/Post";
 import { isAuth } from "../middleware/isAuth";
@@ -12,6 +12,14 @@ class PostInput {
   text: string
 }
 
+@ObjectType()
+class PaginatedPosts {
+  @Field(() => [Post])
+  posts: Post[]
+  @Field()
+  hasMore: boolean;
+}
+
 @Resolver(Post)
 export class PostResolver {
   @FieldResolver(() => String)
@@ -21,24 +29,28 @@ export class PostResolver {
     return root.text.slice(0, 2);
   }
 
-  @Query(() => [Post])
-  posts(
+  @Query(() => PaginatedPosts)
+  async posts(
     @Arg("limit", () => Int) limit: number,
     @Arg("cursor", () => String, { nullable: true }) cursor: string | null
-  ): Promise<Post[]> {
+  ): Promise<PaginatedPosts> {
     const hardLimit = Math.min(50, limit);
+    const hardLimitPlusOne = hardLimit + 1;
     const queryBuilder = getConnection()
       .getRepository(Post)
       .createQueryBuilder("p")
       .orderBy('"createdAt"', "DESC")
-      .take(hardLimit);
+      .take(hardLimitPlusOne);
 
     // number of posts determined by limit. posts are retrieved beginning one after the cursor (we want all posts older than the cursor post)
     if (cursor) {
       queryBuilder.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) })
     }
 
-    return queryBuilder.getMany()
+    const posts = await queryBuilder.getMany()
+
+    // if we're able to retrieve the number of posts requested PLUS ONE, then we know that there are more posts to fetch 
+    return { posts: posts.slice(0, hardLimit), hasMore: posts.length === hardLimitPlusOne }
   }
 
   @Query(() => Post, { nullable: true }) // for graphQL we're going to return a post or null

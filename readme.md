@@ -53,3 +53,4 @@ Technologies Used
 11. add relationships between user and post entities
 12. auth middleware to check if user is logged in when making post
 13. add pagination to posts resolver
+14. add paginatedPosts objectType to inform client whether or not there are more posts to be fetched
