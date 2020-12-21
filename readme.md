@@ -3,7 +3,7 @@
 ```
 Technologies Used
 - typescript            - apollo-server           - uuid
-- redis                 - graphql
+- redis                 - graphql                 - dataloader
 - mikroORM              - nodemailer
 - argon2                - postgreSQL
 ```  
@@ -59,3 +59,8 @@ Technologies Used
 17. add upvote entity
 18. add vote resolver using raw sql and transactions to update Upvote table as well as the Post table containing each post's total points
 19. add vote status to post entity to indicate whether we've voted on the post or not
+21. update post resolver
+22. create field resolver to fetch author for all post queries
+23. batch fetch all field resolvers into one db query using dataloader
+    1.  [1,2,3,4,5]
+    2.  [{ id: 1, username: 'kevin' }, { id: 2, username: 'dylan' }, ...]

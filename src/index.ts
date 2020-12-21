@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import {createConnection} from "typeorm";
+import { createConnection } from "typeorm";
 import express from "express";
 import { COOKIE_NAME, __prod__ } from "./constants";
 import { ApolloServer } from "apollo-server-express";
@@ -16,6 +16,7 @@ import { User } from "./entities/User";
 import { Post } from "./entities/Post";
 import { Upvote } from "./entities/Upvote";
 import path from "path";
+import { createUserLoader } from "./utils/createUserLoader";
 require('dotenv').config();
 
 const main = async () => {
@@ -34,7 +35,7 @@ const main = async () => {
   // await Upvote.delete({});
   // await Post.delete({});
   // await User.delete({});
-  
+
   // create server
   const app = express();
 
@@ -69,7 +70,7 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({ req, res, redis }) // access session in resolvers by passing in req/res
+    context: ({ req, res }): MyContext => ({ req, res, redis, userLoader: createUserLoader() }) // access session in resolvers by passing in req/res
   })
   // create graphql endpoint on express
   apolloServer.applyMiddleware({ app, cors: false });

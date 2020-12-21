@@ -1,3 +1,4 @@
+import { User } from "../entities/User";
 import { MyContext } from "src/types";
 import { Arg, Ctx, Field, FieldResolver, InputType, Int, Mutation, ObjectType, Query, Resolver, Root, UseMiddleware } from "type-graphql";
 import { getConnection } from "typeorm";
@@ -30,6 +31,14 @@ export class PostResolver {
     return `${root.text.slice(0, 15)}...`;
   }
 
+  @FieldResolver(() => User)
+  author(
+    @Root() root: Post,
+    @Ctx() ctx: MyContext
+  ) {
+    return ctx.userLoader.load(root.authorId)
+  }
+
   @Query(() => PaginatedPosts)
   async posts(
     @Arg("limit", () => Int) limit: number,
@@ -55,19 +64,11 @@ export class PostResolver {
 
     const posts = await getConnection().query(`
     SELECT p.*, 
-    json_build_object(
-      'id', u.id,
-      'username', u.username,
-      'email', u.email,
-      'createdAt', u."createdAt",
-      'updatedAt', u."updatedAt"
-      ) author,
     ${ctx.req.session.userId
         ? '(SELECT value FROM upvote WHERE "userId" = $2 AND "postId" = p.id) "voteStatus" '
         : 'null as "voteStatus"'
       }
     FROM post p
-    INNER JOIN public.user u ON u.id = p."authorId"
     ${cursor ? `WHERE p."createdAt" < $${cursorIndex}` : ""}
     ORDER BY p."createdAt" DESC
     LIMIT $1
@@ -98,7 +99,7 @@ export class PostResolver {
   post(
     @Arg('id', () => Int) id: number
   ): Promise<Post | undefined> { // <Post | null> union in Typescript says this will return a Post or null
-    return Post.findOne(id, { relations: ["author"] })
+    return Post.findOne(id)
   }
 
   @Mutation(() => Post)
@@ -113,22 +114,21 @@ export class PostResolver {
   @Mutation(() => Post, { nullable: true })
   @UseMiddleware(isAuth)
   async updatePost(
-    @Arg("id") id: number,
+    @Arg("id", () => Int) id: number,
     // whenever we make something nullable, we have to explicitly state the type for typegraphql
     @Arg("title", () => String, { nullable: true }) title: string,
     @Arg("text", () => String, { nullable: true }) text: string,
     @Ctx() ctx: MyContext
-    ): Promise<Post | null> {
+  ): Promise<Post | null> {
     const updatedPost = await getConnection()
       .createQueryBuilder()
       .update(Post)
       .set({ title, text })
-      .where("id = :id", { id })
-      .andWhere('"authorId" = :authorId', { authorId: ctx.req.session.userId })
+      .where('id = :id and "authorId" = :authorId', { id, authorId: ctx.req.session.userId })
       .returning("*")
       .execute();
-    
-      return updatedPost.raw[0];
+
+    return updatedPost.raw[0];
   }
 
   @Mutation(() => Boolean)
