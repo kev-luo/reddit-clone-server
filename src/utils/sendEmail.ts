@@ -1,5 +1,5 @@
+import "dotenv-safe/config";
 import nodemailer from "nodemailer";
-require("dotenv").config();
 
 // async..await is not allowed in global scope, must use a wrapper
 export async function sendEmail(to: string, subject: string, html: string) {

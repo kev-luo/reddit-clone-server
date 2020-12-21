@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import "dotenv-safe/config";
 import { createConnection } from "typeorm";
 import express from "express";
 import { COOKIE_NAME, __prod__ } from "./constants";
@@ -18,17 +19,15 @@ import { Upvote } from "./entities/Upvote";
 import path from "path";
 import { createUserLoader } from "./utils/createUserLoader";
 import { createUpvoteLoader } from "./utils/createUpvoteLoader";
-require('dotenv').config();
 
 const main = async () => {
 
   const conn = await createConnection({
     type: 'postgres',
-    database: 'lireddit',
-    username: 'postgres',
-    password: process.env.PSQL_PW,
+    url: process.env.DATABASE_URL,
     logging: true,
-    synchronize: true,
+    // set synchronize to true only in development
+    // synchronize: true,
     migrations: [path.join(__dirname, "./migrations/*")],
     entities: [Post, User, Upvote]
   })
@@ -41,11 +40,13 @@ const main = async () => {
   const app = express();
 
   const RedisStore = connectRedis(session);
-  const redis = new Redis();
+  const redis = new Redis(process.env.REDIS_URL);
+  // to work withi sessions and cookies in production set the following:
+  // app.set("proxy", 1);
 
   // cors applies to all routes now (globally)
   app.use(cors({
-    origin: "http://localhost:3000",
+    origin: process.env.CORS_ORIGIN,
     credentials: true,
   }))
 
@@ -57,9 +58,10 @@ const main = async () => {
         maxAge: 1000 * 60 * 60 * 24, // 1 day
         httpOnly: true, // you can't access cookie from frontend js code
         sameSite: 'lax', // csrf protection
-        secure: __prod__ // cookie only works in https. usually only set true in production
+        secure: __prod__, // cookie only works in https. usually only set true in production
+        // NOTE: setup custom domain for cookies in production
       },
-      secret: process.env.SESSION_SECRET!,
+      secret: process.env.SESSION_SECRET,
       resave: false,
       saveUninitialized: false,
     })
@@ -77,8 +79,8 @@ const main = async () => {
   apolloServer.applyMiddleware({ app, cors: false });
 
   // listen for connections to port 4000
-  app.listen(4000, () => {
-    console.log('server started on localhost:4000');
+  app.listen(process.env.PORT, () => {
+    console.log(`server started on localhost:${process.env.PORT}`);
   })
 }
 

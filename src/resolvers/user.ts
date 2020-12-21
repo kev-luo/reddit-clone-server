@@ -158,6 +158,8 @@ export class UserResolver {
     const token = v4();
     await ctx.redis.set(`${FORGET_PW_PREFIX}${token}`, user.id, 'ex', 1000 * 60 * 60 * 24)
 
+    // NOTE: in production we'd need a real email provider to send emails
+    // NOTE: in production we'd also switch localhost:3000 to our production domain url
     const link = `<a href="http://localhost:3000/change-password/${token}">Reset Password</a>`
     sendEmail(email, "Reset Password", link)
 

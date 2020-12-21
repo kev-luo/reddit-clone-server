@@ -65,3 +65,8 @@ Technologies Used
     1.  [1,2,3,4,5]
     2.  [{ id: 1, username: 'kevin' }, { id: 2, username: 'dylan' }, ...]
 24. batch fetch vote statuses for all users for each post
+
+
+notes:
+cookies in proxy environments (scenario engine x in front of our API)
+- 
