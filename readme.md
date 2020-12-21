@@ -64,3 +64,4 @@ Technologies Used
 23. batch fetch all field resolvers into one db query using dataloader
     1.  [1,2,3,4,5]
     2.  [{ id: 1, username: 'kevin' }, { id: 2, username: 'dylan' }, ...]
+24. batch fetch vote statuses for all users for each post

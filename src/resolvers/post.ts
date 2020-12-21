@@ -39,37 +39,37 @@ export class PostResolver {
     return ctx.userLoader.load(root.authorId)
   }
 
+  @FieldResolver(() => Int, { nullable: true })
+  async voteStatus(
+    @Root() root: Post,
+    @Ctx() ctx: MyContext
+  ) {
+    if (!ctx.req.session.userId) {
+      return null;
+    }
+    const upvote = await ctx.upvoteLoader.load({ postId: root.id, userId: ctx.req.session.userId })
+    return upvote ? upvote.value : null
+  }
+
   @Query(() => PaginatedPosts)
   async posts(
     @Arg("limit", () => Int) limit: number,
-    @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
-    @Ctx() ctx: MyContext
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
   ): Promise<PaginatedPosts> {
     const hardLimit = Math.min(50, limit);
     const hardLimitPlusOne = hardLimit + 1;
 
     const replacements: any[] = [hardLimitPlusOne];
 
-    let cursorIndex = 3;
-
-    if (ctx.req.session.userId) {
-      replacements.push(ctx.req.session.userId);
-    }
-
     // number of posts determined by limit. posts are retrieved beginning one after the cursor (we want all posts older than the cursor post)
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)))
-      cursorIndex = replacements.length;
     }
 
     const posts = await getConnection().query(`
-    SELECT p.*, 
-    ${ctx.req.session.userId
-        ? '(SELECT value FROM upvote WHERE "userId" = $2 AND "postId" = p.id) "voteStatus" '
-        : 'null as "voteStatus"'
-      }
+    SELECT p.*
     FROM post p
-    ${cursor ? `WHERE p."createdAt" < $${cursorIndex}` : ""}
+    ${cursor ? `WHERE p."createdAt" < $2` : ""}
     ORDER BY p."createdAt" DESC
     LIMIT $1
     `, replacements)

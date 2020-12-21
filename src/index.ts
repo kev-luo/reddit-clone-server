@@ -17,6 +17,7 @@ import { Post } from "./entities/Post";
 import { Upvote } from "./entities/Upvote";
 import path from "path";
 import { createUserLoader } from "./utils/createUserLoader";
+import { createUpvoteLoader } from "./utils/createUpvoteLoader";
 require('dotenv').config();
 
 const main = async () => {
@@ -70,7 +71,7 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({ req, res, redis, userLoader: createUserLoader() }) // access session in resolvers by passing in req/res
+    context: ({ req, res }): MyContext => ({ req, res, redis, userLoader: createUserLoader(), upvoteLoader: createUpvoteLoader() }) // access session in resolvers by passing in req/res
   })
   // create graphql endpoint on express
   apolloServer.applyMiddleware({ app, cors: false });
